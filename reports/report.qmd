@@ -2,11 +2,11 @@
 title: Homework 8 - World Bank Analysis
 ---
 
-GITHUB URL:  <https://github.com/cmsc-vcu/cmsc408-sp2025-hw8-jleonard99>
+GITHUB URL:  <https://github.com/cmsc-vcu/cmsc408-sp2025-hw8-sagegint>
 
 
 # Problem Background
-
+This assignment had me connecting to the world bank database, and doing A LOT of detailed queries- for hyper specific asks. These queries also included another aspect of CRUD- updating tables to reflect more accurate data. 
 
 ```{python}
 from helpers import create_database_engine, run_sql_and_return_df, run_sql_and_return_html, create_db_wrapper, execute_ddl_from_file, execute_ddl
@@ -44,7 +44,8 @@ In the following exercises, write the SQL as requested to discover the answer.
 
 ## Task 1
 
-How many records are in the country table?
+How many records are in the country table? 
+There are 265 records(rows) in the country table.
 
 ```{python}
 # How many records are in the world_bank_data.wdi_country table?
@@ -61,7 +62,10 @@ from
 
 ## Task 2
 
-Explore the first 5 records in the country table.
+Explore the first 10 records in the country table.
+
+National accounts reference year, currency unit, special notes, region,, income group, lending category, other groups, system of national accounts, alternative conversion factor, PPP survey year, Balance of Payments Manual in use, External debt Reporting status, System of trade, Government Accounting concept, IMF data dissemination standard, Latest population census, Latest household survey, Source of most recent Income and expenditure data, Vital registration complete, Latest agricultural census, Latest industrial data, Latest trade data, Latest water withdrawal data all containe null or missing data. 
+This is definitely incomplete, as certain fields (for example, the field "region") would always have a definite value for a country.
 
 ```{python}
 ## write out the first 10 records and look at the columns
@@ -73,7 +77,7 @@ select
   *
 from 
   world_bank_data.wdi_country
-limit 5
+limit 10
 """)
 
 ```
@@ -81,7 +85,7 @@ limit 5
 
 ## Task 3
 
-List all non-countries.
+List all non-countries. The first thing I noticed about regions/groups of countries is that every one of them have their currency unit set to NULL. 
 
 ```{python}
 ## task 3
@@ -91,7 +95,9 @@ List all non-countries.
 ## (skills: select, where)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select `Short Name`
+FROM world_bank_data.wdi_country
+WHERE `Currency Unit` IS NULL;
 """)
 ```
 
@@ -116,25 +122,31 @@ drop table if exists wdi_country;
 ```{python}
 # create table
 execute_ddl(cnx,"""
+CREATE TABLE wdi_country AS
+SELECT *
+FROM world_bank_data.wdi_country
+WHERE `Currency Unit` IS NOT NULL;
 """)
 ```
 
 ```{python}
 # show number of records
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+SELECT COUNT(*) as numrecords
+FROM wdi_country; 
 """)
 ```
 
 ## Task 5
 
-According to the World Bank, in 2020 there were how many countries in the world?
+According to the World Bank, in 2020 there were how many countries in the world? 217 - the same as the number of rows. 
 
 ```{python}
 ## (skills: select, aggregate)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select count(*) as numcountries
+from wdi_country;
 """)
 
 ```
@@ -142,6 +154,14 @@ select "doh!" as "Homer says ..." from dual
 ## Task 6
 
 What are all unique values of region in the wdi_country table?
+0	None
+1	East Asia & Pacific
+2	Europe & Central Asia
+3	Latin America & Caribbean
+4	Middle East & North Africa
+5	North America
+6	South Asia
+7	Sub-Saharan Africa
 
 ```{python}
 ## Let's investigate the country_region field.
@@ -151,7 +171,9 @@ What are all unique values of region in the wdi_country table?
 ## (skills: select, aggregate, order by)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select distinct `Region`
+from world_bank_data.wdi_country
+ORDER BY `Region`;
 """)
 
 ```
@@ -159,13 +181,23 @@ select "doh!" as "Homer says ..." from dual
 ## Task 7
 
 How many countries are in each region?
+0	Latin America & Caribbean	42
+1	None	48
+2	South Asia	8
+3	Sub-Saharan Africa	48
+4	Europe & Central Asia	58
+5	Middle East & North Africa	21
+6	East Asia & Pacific	37
+7	North America	3
 
 ```{python}
 ## How many countries are in each region?
 ## (skills: select, aggregate, group by, order by)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+SELECT `Region`, COUNT(*) AS numcountries
+FROM wdi_country
+GROUP BY `Region`;
 """)
 
 ```
@@ -174,17 +206,29 @@ select "doh!" as "Homer says ..." from dual
 
 List the country full names and regions for all countries in north america.
 
+0	The Bermudas	North America
+1	Canada	North America
+2	United States of America	North America
+
+
 ```{python}
 ## List the country full names and regions for all countries in north america
 ## (skills: select, where, order by)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select `Long Name` as "Full Name", `Region`
+from world_bank_data.wdi_country
+where `Region` = "North America";
 """)
 
 ```
 
 ## Task 9
+
+The last World Cup soccer tournament was hosted by Qatar.
+What region contains Qatar?
+
+  Middle East & North Africa	-  Qatar  -  State of Qatar
 
 ```{python}
 ## The last World Cup soccer tournament was hosted by Qatar.
@@ -192,12 +236,24 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, where)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select `Region`, `Short Name`, `Long Name` as "Full Name"
+from world_bank_data.wdi_country
+where `Short Name` = 'Qatar';
 """)
 
 ```
 
 ## Task 10
+
+There are two abbreviation fields in the data country_abbr and country_wb_abbr.
+
+List the country code, short name, abbr, wb_abbr and region for all the countries where the abbr and wb_abbr are different.
+
+0	COD	Dem. Rep. Congo	CD	ZR	Sub-Saharan Africa
+1	PSE	West Bank and Gaza	PS	GZ	Middle East & North Africa
+2	SRB	Serbia	RS	YF	Europe & Central Asia
+3	TLS	Timor-Leste	TL	TP	East Asia & Pacific
+4	YEM	Yemen	YE	RY	Middle East & North Africa
 
 ```{python}
 ## There are two abbreviation fields in the data country_abbr and country_wb_abbr.
@@ -206,12 +262,24 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, where, order by)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select `Country Code`, `Short Name`, `2-alpha code`, `WB-2 code`, `Region`
+from world_bank_data.wdi_country
+where `2-alpha code` != `WB-2 code`;
 """)
 
 ```
 
 ## Task 11
+
+Now, let's investigate the "income category" field.
+List the income categories and the number of countries in each
+income category in descending order of most countries to least.
+
+0	High income	85
+1	Upper middle income	54
+2	Lower middle income	51
+3	Low income	26
+4	None	1
 
 ```{python}
 ## Now, let's investigate the "income category" field.
@@ -220,12 +288,18 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, aggregate, group by, order by)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+SELECT `Income Group`, COUNT(*) AS numcountries
+FROM wdi_country
+GROUP BY `Income Group`
+ORDER BY numcountries DESC;
 """)
 
 ```
 
 ## Task 12
+
+That's weird- why is there a country where the income group is none? 
+Somethings up with Venezuela!
 
 ```{python}
 ## Mystery task.  Looking at the table from Task 11 (anything odd?) write the
@@ -235,12 +309,18 @@ select "doh!" as "Homer says ..." from dual
 ## in the first column.
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select `Short Name`, `Income Group`
+from wdi_country
+where `Income Group` IS NULL;
 """)
 
 ```
 
 ## Task 13
+
+OK, this HAS to be an error. Let's make a assumption that the country 
+in question, because they are oil-rich, are "high income".  
+Write an update comment to correct the issue.
 
 ```{python}
 ## OK, this HAS to be an error. Let's make a assumption that the country 
@@ -249,20 +329,33 @@ select "doh!" as "Homer says ..." from dual
 ## NOTE - if you get this wrong, all subsequent tables will be wrong!
 
 execute_ddl(cnx,"""
+update wdi_country
+set `Income Group` = 'High income'
+where `Short Name` = 'Venezuela';
+commit;
+
 """)
 
-
 ```
+
+Now, display the country again to verify the change stuck!
+
 ```{python}
 ## Now, display the country again to verify the change stuck!
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+SELECT `Short Name`, `Income Group`
+FROM wdi_country
+WHERE `Short Name` = 'Venezuela';
 """)
 
 ```
 
 ## Task 14
+
+Write a single query that show the number of countries in each 
+"Region"-"Income Group" pair.  The table should have 3 columns:
+region, income group, and no.of.countries.
 
 ```{python}
 ## Write a single query that show the number of countries in each 
@@ -271,12 +364,22 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, aggregate, group by, order by)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+select `Region`, `Income Group`, COUNT(*) as `no.of.countries`
+from wdi_country
+group by `Region`, `Income Group`
+order by `Region`, `Income Group`
 """)
 
 ```
 
 ## Task 15
+
+Examine the result from task 14. It would be really cool to
+present the results of this table in a 2-D form, with 
+columns for each income category (high, upper middle, lower middle, low, other)
+regions down the side, and the pair-wise count inside each cell.
+Using CASE statements, DO IT!  BE SURE to include the countries without
+an income category.
 
 ```{python}
 ## Examine the result from task 14. It would be really cool to
@@ -292,12 +395,28 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, aggregate, group by, nested query)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+SELECT 
+    `Region`,
+    COUNT(CASE WHEN `Income Group` = 'High income' THEN 1 END) AS `High income`,
+    COUNT(CASE WHEN `Income Group` = 'Upper middle income' THEN 1 END) AS `Upper middle income`,
+    COUNT(CASE WHEN `Income Group` = 'Lower middle income' THEN 1 END) AS `Lower middle income`,
+    COUNT(CASE WHEN `Income Group` = 'Low income' THEN 1 END) AS `Low income`,
+    COUNT(CASE WHEN `Income Group` NOT IN ('High income', 'Upper middle income', 'Lower middle income', 'Low income') THEN 1 END) AS `No income category`,
+    COUNT(*) AS `Row Total`
+FROM 
+    wdi_country
+GROUP BY 
+    `Region`
+ORDER BY 
+    `Region`;
+
 """)
 
 ```
 
 ## Task 16
+
+the single region with the most lower-income countries
 
 ```{python}
 ## Wow! what a cool table!  It is very interesting to see where the money
@@ -312,12 +431,28 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, aggregate, group by, nested query, order by, limit)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+SELECT 
+    COUNT(*) AS `Low Income Count`, 
+    `Region`, 
+    `Income Group`
+FROM 
+    wdi_country
+WHERE 
+    `Income Group` = 'Low income'
+GROUP BY 
+    `Region`, `Income Group`
+ORDER BY 
+    `Low Income Count` DESC
+LIMIT 1;
+
 """)
 
 ```
 
 ## Task 17
+
+We need to take a look at all the countries in the same region and with the same income category as the Marshall Islands.
+For each country that matches, print their country code, short name, region and income category, by order of their short name.
 
 ```{python}
 ## Are you getting the hand of this? Good! We need to take a look at all
@@ -329,12 +464,35 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, where, subquery)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+SELECT 
+    `Country Code`, 
+    `Short Name`, 
+    `Region`, 
+    `Income Group`
+FROM 
+    wdi_country
+WHERE 
+    `Region` = (
+        SELECT `Region` 
+        FROM wdi_country 
+        WHERE `Country Code` = 'MHL'
+    )
+    AND `Income Group` = (
+        SELECT `Income Group` 
+        FROM wdi_country 
+        WHERE `Country Code` = 'MHL'
+    )
+ORDER BY 
+    `Short Name`;
+
 """)
 
 ```
 
 ## Task 18
+
+table that contains every combination of region and income category (including the missing '') values!
+THEN add a WHERE clause to only show the values that were missing from the original pairings!
 
 ```{python}
 ## OK - let's raise the heat in the kitchen! Review the output from task 14.
@@ -354,12 +512,44 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, where, subqueries, joins)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+WITH all_combinations AS (
+    SELECT 
+        r.Region, 
+        i.`Income Group`
+    FROM 
+        (SELECT DISTINCT `Region` FROM wdi_country WHERE `Region` IS NOT NULL) r
+    CROSS JOIN 
+        (SELECT DISTINCT `Income Group` FROM wdi_country WHERE `Income Group` IS NOT NULL) i
+),
+actual_pairs AS (
+    SELECT DISTINCT 
+        `Region`, 
+        `Income Group`
+    FROM 
+        wdi_country
+    WHERE 
+        `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+)
+SELECT 
+    ac.Region, 
+    ac.`Income Group`
+FROM 
+    all_combinations ac
+LEFT JOIN 
+    actual_pairs ap
+    ON ac.Region = ap.Region AND ac.`Income Group` = ap.`Income Group`
+WHERE 
+    ap.Region IS NULL
+ORDER BY 
+    ac.Region, ac.`Income Group`;
+
 """)
 
 ```
 
 ## Task 19
+
+what is the percentage of total countries in each income category?
 
 ```{python}
 ## Hot enough, yet?  Let's go for ghost-pepper HOT!  Now let's build some
@@ -378,7 +568,60 @@ select "doh!" as "Homer says ..." from dual
 ## (skills: select, where, subqueries, joins, aggregate functions)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+WITH base AS (
+    SELECT 
+        `Region`,
+        `Income Group`,
+        COUNT(*) AS country_count
+    FROM 
+        wdi_country
+    WHERE 
+        `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+    GROUP BY 
+        `Region`, `Income Group`
+),
+region_totals AS (
+    SELECT 
+        `Region`, 
+        COUNT(*) AS region_total
+    FROM 
+        wdi_country
+    WHERE 
+        `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+    GROUP BY `Region`
+),
+income_totals AS (
+    SELECT 
+        `Income Group`, 
+        COUNT(*) AS income_total
+    FROM 
+        wdi_country
+    WHERE 
+        `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+    GROUP BY `Income Group`
+),
+grand_total AS (
+    SELECT COUNT(*) AS total_countries
+    FROM wdi_country
+    WHERE `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+)
+
+SELECT 
+    b.`Region`,
+    b.`Income Group`,
+    b.country_count,
+    rt.region_total,
+    it.income_total,
+    gt.total_countries,
+    ROUND(100.0 * b.country_count / gt.total_countries, 2) AS percent_of_total
+FROM 
+    base b
+JOIN region_totals rt ON b.`Region` = rt.`Region`
+JOIN income_totals it ON b.`Income Group` = it.`Income Group`
+JOIN grand_total gt
+ORDER BY 
+    b.`Region`, b.`Income Group`;
+
 """)
 
 
@@ -386,18 +629,55 @@ select "doh!" as "Homer says ..." from dual
 
 ## Task 20
 
+Print table similar to the table in Task 15, with Income group in the columns, Region in the rows and Percent of total in each cell of the table.
+
+
 ```{python}
 ## SLAM DUNK TIME!  Using the resulting table CTEs from Task 19,
 ## print table similar to the table in Task 15, with Income group in the
 ## columns, Region in the rows and Percent of total in each cell of the table.
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+WITH region_income_counts AS (
+    SELECT 
+        `Region`,
+        `Income Group`,
+        COUNT(*) AS country_count
+    FROM 
+        wdi_country
+    WHERE 
+        `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+    GROUP BY 
+        `Region`, `Income Group`
+),
+total_count AS (
+    SELECT 
+        COUNT(*) AS total_countries
+    FROM wdi_country
+    WHERE `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+)
+
+SELECT 
+    r.`Region`,
+    ROUND(100.0 * SUM(CASE WHEN r.`Income Group` = 'High income' THEN r.country_count ELSE 0 END) / (SELECT total_countries FROM total_count), 2) AS `High income`,
+    ROUND(100.0 * SUM(CASE WHEN r.`Income Group` = 'Upper middle income' THEN r.country_count ELSE 0 END) / (SELECT total_countries FROM total_count), 2) AS `Upper middle income`,
+    ROUND(100.0 * SUM(CASE WHEN r.`Income Group` = 'Lower middle income' THEN r.country_count ELSE 0 END) / (SELECT total_countries FROM total_count), 2) AS `Lower middle income`,
+    ROUND(100.0 * SUM(CASE WHEN r.`Income Group` = 'Low income' THEN r.country_count ELSE 0 END) / (SELECT total_countries FROM total_count), 2) AS `Low income`,
+    ROUND(100.0 * SUM(CASE WHEN r.`Income Group` NOT IN ('High income', 'Upper middle income', 'Lower middle income', 'Low income') THEN r.country_count ELSE 0 END) / (SELECT total_countries FROM total_count), 2) AS `No income category`,
+    ROUND(100.0 * SUM(r.country_count) / (SELECT total_countries FROM total_count), 2) AS `Row Total`
+FROM 
+    region_income_counts r
+GROUP BY 
+    r.`Region`
+ORDER BY 
+    r.`Region`;
 """)
 
 ```
 
 ## Task 21
+
+Using the resulting table CTEs from Task 19, print a table listing the number, totals and percentage of countries by income category.
 
 ```{python}
 ## ANOTHER DUNK!  Using the resulting table CTEs from Task 19,
@@ -407,7 +687,36 @@ select "doh!" as "Homer says ..." from dual
 ## (This is much simpler than task 20!)
 
 run_sql_and_return_html(cnx,"""
-select "doh!" as "Homer says ..." from dual
+WITH region_income_counts AS (
+    SELECT 
+        `Region`,
+        `Income Group`,
+        COUNT(*) AS country_count
+    FROM 
+        wdi_country
+    WHERE 
+        `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+    GROUP BY 
+        `Region`, `Income Group`
+),
+total_count AS (
+    SELECT 
+        COUNT(*) AS total_countries
+    FROM wdi_country
+    WHERE `Region` IS NOT NULL AND `Income Group` IS NOT NULL
+)
+
+SELECT 
+    r.`Income Group`,
+    SUM(r.country_count) AS `Total Countries`,
+    ROUND(100.0 * SUM(r.country_count) / (SELECT total_countries FROM total_count), 2) AS `Percentage of Total`
+FROM 
+    region_income_counts r
+GROUP BY 
+    r.`Income Group`
+ORDER BY 
+    `Total Countries` DESC;
+
 """)
 
 ```
@@ -417,26 +726,20 @@ select "doh!" as "Homer says ..." from dual
 
 1. Reflect on the SQL skills you used throughout these exercises. Which skills do you feel most confident in, and which do you think need more practice? How has this assignment helped you build or reinforce specific SQL competencies?
 
-( response goes here)
+I feel confident in the simpler queries, but once you get very complex (having to remember which joins are appropriate for your query) it can be a lot to remember- the practice helps though!
 
 2. Problem-Solving Approach: Describe your approach to tackling the more complex tasks (like Tasks 18, 23, and 24). How did you break down these problems, and what steps did you take when you encountered challenges? How would you approach a similar problem differently in the future?
 
-( response goes here)
+Making sure missing data didnt corrupt the percentages was a hassle- like how some regions dont have all of the income group listings. 
+task 23 didnt like me using cross join, so subqueries it was. 
 
 
 3. Learning Takeaways: Consider the overall learning experience from this assignment. What were the biggest takeaways about working with SQL for data analysis and transformation? How do you think these skills will apply in real-world scenarios or future coursework?
 
-( response goes here)
+This will be very useful for my future capstone project (at least the one that I want to do!) This assignment is eye opening to the complexity of detailed queries that would be useful in database interaction... and this assignment is telling me I need more practice writing and understanding query logic. 
 
 
 # README
-
-A quality README is an important part of EVERY project. Using the Quarto *include* command we're including a copy of your README in the project report so that a human can evaluate it.
-
-Make sure that you edit the README so that it's explanatory!  Note that you don't need a readme within the *reports* folder for this assignment. We're only
-focused on the root *README.md*.
-
-[Here is some info](https://www.freecodecamp.org/news/how-to-write-a-good-readme-file/) on how to write a good README!
 
 ::: {style="background:lightgray; margin-left:20px; border-top: 3px solid black; border-bottom: 3px solid black; padding-left:20px; padding-right:20px"}
 {{< include ../README.md >}}
